@@ -1,6 +1,6 @@
 {
   "name": "@azesmway/react-native-unity",
-  "version": "1.0.11",
+  "version": "1.0.11-fork.1",
   "description": "React Native Unity",
   "main": "lib/commonjs/index",
   "module": "lib/module/index",
@@ -43,14 +43,14 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/azesmway/react-native-unity.git"
+    "url": "git+https://github.com/leaguefun/react-native-unity.git"
   },
   "author": "Alexey Zolotaryov <azesm@me.com> (https://github.com/azesmway)",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/azesmway/react-native-unity/issues"
+    "url": "https://github.com/leaguefun/react-native-unity/issues"
   },
-  "homepage": "https://github.com/azesmway/react-native-unity#readme",
+  "homepage": "https://github.com/leaguefun/react-native-unity#readme",
   "publishConfig": {
     "registry": "https://registry.npmjs.org/",
     "access": "public"

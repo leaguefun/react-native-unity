@@ -12,7 +12,7 @@ Pod::Spec.new do |s|
   s.authors      = package["author"]
 
   s.platforms    = { :ios => "12.4" }
-  s.source       = { :git => "https://github.com/azesmway/react-native-unity.git", :tag => "#{s.version}" }
+  s.source       = { :git => "https://github.com/leaguefun/react-native-unity.git", :tag => "#{s.version}" }
 
   s.source_files = "ios/**/*.{h,m,mm}"
 
@@ -45,7 +45,15 @@ Pod::Spec.new do |s|
   # The framework should be placed in the <YOUR_PROJECT>/unity/builds/ios folder.
   s.prepare_command =
   <<-CMD
-    cp -R ../../../unity/builds/ios/ ios/
+    UNITY_BUILD_SRC="../../../unity/builds/ios/"
+    if [ -d "$UNITY_BUILD_SRC" ]; then
+      cp -R "$UNITY_BUILD_SRC" ios/
+    else
+      echo ""
+      echo "WARNING: react-native-unity: Unity iOS framework not found at $UNITY_BUILD_SRC"
+      echo "  Place UnityFramework.framework in <YOUR_PROJECT>/unity/builds/ios/"
+      echo ""
+    fi
   CMD
 
   s.vendored_frameworks = ["ios/UnityFramework.framework"]

@@ -194,6 +194,45 @@ export default Unity;
 - `pauseUnity?: (pause: boolean)` - pause the Unity
 - `windowFocusChanged(hasFocus: boolean = false)` - simulate focus change (intended to be used to recover from black screen (not rendering) after remounting Unity view when `resumeUnity` does not work) **ANDROID ONLY**
 
+# Troubleshooting
+
+## iOS: Unity view not rendering / blank screen
+
+The `UnityView` component **must** have non-zero dimensions. Always use `style={{ flex: 1 }}` on both the parent container and the `UnityView` itself. The native `layoutSubviews` method checks for positive width and height before attaching the Unity root view.
+
+## iOS: `MTLTextureDescriptor has width of zero` crash
+
+This is the same root cause as above. The Unity Metal renderer crashes if it receives a zero-sized texture. Ensure the view has layout dimensions before the component mounts.
+
+## Android: Build fails with Java-related errors
+
+Unity's Android export requires a specific JDK version. Add the following to `android/gradle.properties`, pointing to the JDK that matches your Unity version:
+
+```gradle
+org.gradle.java.home=/path/to/your/jdk
+```
+
+For Unity 6000.x, JDK 17 is typically required (e.g., Zulu JDK 17).
+
+## React Native 0.85+ / New Architecture (Fabric)
+
+This package supports New Architecture out of the box via codegen. On RN 0.85+, New Architecture is the default. Ensure:
+
+- `newArchEnabled=true` in `android/gradle.properties`
+- Your Podfile uses `install_modules_dependencies` (standard in RN 0.71+)
+
+The podspec automatically detects and configures Fabric dependencies when available.
+
+## iOS: UnityFramework not found during `pod install`
+
+Ensure you have built the `UnityFramework.framework` from your Unity project and placed it at:
+
+```
+<YOUR_RN_PROJECT>/unity/builds/ios/UnityFramework.framework
+```
+
+The `pod install` step copies this framework into the package. If the path is wrong, you will see a warning during installation.
+
 # Contributing
 
 See the [contributing guide](CONTRIBUTING.md) to learn how to contribute to the repository and the development workflow.
