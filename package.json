@@ -172,6 +172,11 @@
   "codegenConfig": {
     "name": "unityview",
     "type": "components",
-    "jsSrcsDir": "src"
+    "jsSrcsDir": "src",
+    "ios": {
+      "componentProvider": {
+        "RNUnityView": "RNUnityView"
+      }
+    }
   }
 }
