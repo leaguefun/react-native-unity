@@ -45,10 +45,19 @@ static RNUnityView *sharedInstance;
 - (void)initUnityModule {
     @try {
         if([self unityIsInitialized]) {
+            NSLog(@"[RNUnity] Already initialized, skipping");
             return;
         }
 
+        NSLog(@"[RNUnity] Loading UnityFramework...");
         [self setUfw: UnityFrameworkLoad()];
+
+        if (![self ufw]) {
+            NSLog(@"[RNUnity] ERROR: UnityFrameworkLoad returned nil");
+            return;
+        }
+        NSLog(@"[RNUnity] Framework loaded successfully");
+
         [[self ufw] registerFrameworkListener: self];
 
         unsigned count = (int) [[[NSProcessInfo processInfo] arguments] count];
@@ -60,7 +69,15 @@ static RNUnityView *sharedInstance;
         }
         array[count] = NULL;
 
+        NSLog(@"[RNUnity] Calling runEmbeddedWithArgc...");
         [[self ufw] runEmbeddedWithArgc: gArgc argv: array appLaunchOpts: appLaunchOpts];
+
+        if (![[self ufw] appController]) {
+            NSLog(@"[RNUnity] ERROR: appController is nil after runEmbedded");
+            return;
+        }
+        NSLog(@"[RNUnity] appController ready, rootView=%@", self.ufw.appController.rootView);
+
         [[self ufw] appController].quitHandler = ^(){ NSLog(@"AppController.quitHandler called"); };
         [self.ufw.appController.rootView removeFromSuperview];
 
@@ -75,9 +92,10 @@ static RNUnityView *sharedInstance;
         [[[[[[self ufw] appController] window] rootViewController] view] setNeedsLayout];
 
         [NSClassFromString(@"FrameworkLibAPI") registerAPIforNativeCalls:self];
+        NSLog(@"[RNUnity] Init complete. bounds=%@", NSStringFromCGRect(self.bounds));
     }
     @catch (NSException *e) {
-        NSLog(@"%@",e);
+        NSLog(@"[RNUnity] EXCEPTION: %@", e);
     }
 }
 
