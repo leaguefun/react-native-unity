@@ -42,21 +42,38 @@ static RNUnityView *sharedInstance;
     return [self ufw] && [[self ufw] appController];
 }
 
+- (void)showDebugStatus:(NSString *)status {
+    // Temporary visible diagnostic — remove once Unity init is confirmed working
+    UILabel *label = [self viewWithTag:9999];
+    if (!label) {
+        label = [[UILabel alloc] initWithFrame:CGRectMake(10, 40, 350, 80)];
+        label.tag = 9999;
+        label.numberOfLines = 0;
+        label.font = [UIFont systemFontOfSize:11];
+        label.backgroundColor = [[UIColor blackColor] colorWithAlphaComponent:0.7];
+        label.textColor = [UIColor greenColor];
+        label.layer.zPosition = 9999;
+        [self addSubview:label];
+    }
+    label.text = status;
+    NSLog(@"[RNUnity] %@", status);
+}
+
 - (void)initUnityModule {
     @try {
         if([self unityIsInitialized]) {
-            NSLog(@"[RNUnity] Already initialized, skipping");
+            [self showDebugStatus:@"Already initialized"];
             return;
         }
 
-        NSLog(@"[RNUnity] Loading UnityFramework...");
+        [self showDebugStatus:@"Loading framework..."];
         [self setUfw: UnityFrameworkLoad()];
 
         if (![self ufw]) {
-            NSLog(@"[RNUnity] ERROR: UnityFrameworkLoad returned nil");
+            [self showDebugStatus:@"ERROR: UnityFrameworkLoad returned nil"];
             return;
         }
-        NSLog(@"[RNUnity] Framework loaded successfully");
+        [self showDebugStatus:@"Framework loaded, registering listener..."];
 
         [[self ufw] registerFrameworkListener: self];
 
@@ -69,33 +86,64 @@ static RNUnityView *sharedInstance;
         }
         array[count] = NULL;
 
-        NSLog(@"[RNUnity] Calling runEmbeddedWithArgc...");
+        [self showDebugStatus:@"Calling runEmbeddedWithArgc..."];
         [[self ufw] runEmbeddedWithArgc: gArgc argv: array appLaunchOpts: appLaunchOpts];
 
         if (![[self ufw] appController]) {
-            NSLog(@"[RNUnity] ERROR: appController is nil after runEmbedded");
+            [self showDebugStatus:@"ERROR: appController nil after runEmbedded"];
             return;
         }
-        NSLog(@"[RNUnity] appController ready, rootView=%@", self.ufw.appController.rootView);
 
-        [[self ufw] appController].quitHandler = ^(){ NSLog(@"AppController.quitHandler called"); };
-        [self.ufw.appController.rootView removeFromSuperview];
-
-        if (@available(iOS 13.0, *)) {
-            [[[[self ufw] appController] window] setWindowScene: nil];
-        } else {
-            [[[[self ufw] appController] window] setScreen: nil];
+        UIView *unityRootView = self.ufw.appController.rootView;
+        if (!unityRootView) {
+            [self showDebugStatus:@"ERROR: rootView is nil"];
+            return;
         }
 
-        [[[[self ufw] appController] window] addSubview: self.ufw.appController.rootView];
-        [[[[self ufw] appController] window] makeKeyAndVisible];
-        [[[[[[self ufw] appController] window] rootViewController] view] setNeedsLayout];
+        [self showDebugStatus:[NSString stringWithFormat:@"appController OK, rootView=%@", unityRootView]];
+
+        [[self ufw] appController].quitHandler = ^(){ NSLog(@"AppController.quitHandler called"); };
+
+        // Remove Unity's rootView from Unity's own view hierarchy
+        [unityRootView removeFromSuperview];
+
+        // Hide Unity's window so it doesn't cover React Native's UI
+        UIWindow *unityWindow = [[[self ufw] appController] window];
+        unityWindow.hidden = YES;
+
+        // Restore React Native's window as key window
+        UIWindow *rnWindow = [[[UIApplication sharedApplication] delegate] window];
+        if (!rnWindow) {
+            // iOS 13+ scene-based: find the first connected scene's window
+            if (@available(iOS 13.0, *)) {
+                for (UIScene *scene in [UIApplication sharedApplication].connectedScenes) {
+                    if ([scene isKindOfClass:[UIWindowScene class]]) {
+                        UIWindowScene *windowScene = (UIWindowScene *)scene;
+                        for (UIWindow *w in windowScene.windows) {
+                            if (w != unityWindow) {
+                                rnWindow = w;
+                                break;
+                            }
+                        }
+                        if (rnWindow) break;
+                    }
+                }
+            }
+        }
+        if (rnWindow) {
+            [rnWindow makeKeyAndVisible];
+        }
+
+        // Add Unity's rendering view to self (the RN component view)
+        unityRootView.frame = self.bounds;
+        [self addSubview:unityRootView];
 
         [NSClassFromString(@"FrameworkLibAPI") registerAPIforNativeCalls:self];
-        NSLog(@"[RNUnity] Init complete. bounds=%@", NSStringFromCGRect(self.bounds));
+        [self showDebugStatus:[NSString stringWithFormat:@"INIT OK bounds=%@ rootView.frame=%@",
+            NSStringFromCGRect(self.bounds), NSStringFromCGRect(unityRootView.frame)]];
     }
     @catch (NSException *e) {
-        NSLog(@"[RNUnity] EXCEPTION: %@", e);
+        [self showDebugStatus:[NSString stringWithFormat:@"EXCEPTION: %@", e.reason]];
     }
 }
 
@@ -105,6 +153,12 @@ static RNUnityView *sharedInstance;
    if([self unityIsInitialized]) {
       self.ufw.appController.rootView.frame = self.bounds;
       [self addSubview:self.ufw.appController.rootView];
+   }
+
+   // Keep debug label on top
+   UILabel *label = [self viewWithTag:9999];
+   if (label) {
+      [self bringSubviewToFront:label];
    }
 }
 
