@@ -92,13 +92,30 @@ public class UPlayer {
     }
 
     public FrameLayout requestFrame() throws NoSuchMethodException {
+        // Unity 6+: UnityPlayer no longer extends FrameLayout, use getFrameLayout()
         try {
             Method getFrameLayout = unityPlayer.getClass().getMethod("getFrameLayout");
-
             return (FrameLayout) getFrameLayout.invoke(unityPlayer);
         } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
-            return unityPlayer;
+            // Fall through to getView()
         }
+        // Unity 6+ alternate: try getView()
+        try {
+            Method getView = unityPlayer.getClass().getMethod("getView");
+            Object view = getView.invoke(unityPlayer);
+            if (view instanceof FrameLayout) {
+                return (FrameLayout) view;
+            }
+        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+            // Fall through
+        }
+        // Legacy Unity (pre-6): UnityPlayer itself extends FrameLayout
+        // Cast through Object to bypass compile-time type check
+        Object player = unityPlayer;
+        if (player instanceof FrameLayout) {
+            return (FrameLayout) player;
+        }
+        return null;
     }
 
     public void setZ(float v) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
