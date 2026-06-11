@@ -7,6 +7,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.view.ViewGroup;
 import android.view.WindowManager;
+import android.widget.FrameLayout;
 
 import static android.view.ViewGroup.LayoutParams.MATCH_PARENT;
 
@@ -52,11 +53,29 @@ public class ReactNativeUnity {
                         unityPlayer = new UPlayer(activity, callback);
                     } catch (ClassNotFoundException | InstantiationException | IllegalAccessException | InvocationTargetException e) {}
 
-                    // Use non-blocking delay instead of Thread.sleep to keep UI responsive
-                    new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+                    // Poll for Unity's rendering surface instead of blocking with Thread.sleep.
+                    // This keeps the UI thread responsive while waiting for Unity to initialize.
+                    final Handler handler = new Handler(Looper.getMainLooper());
+                    final int POLL_INTERVAL_MS = 100;
+                    final int MAX_POLLS = 30; // 3 seconds max
+                    final int[] pollCount = {0};
+
+                    handler.postDelayed(new Runnable() {
                         @Override
                         public void run() {
-                            // start unity
+                            pollCount[0]++;
+                            FrameLayout frame = null;
+                            try {
+                                frame = unityPlayer.requestFrame();
+                            } catch (NoSuchMethodException e) {}
+
+                            if (frame == null && pollCount[0] < MAX_POLLS) {
+                                // Unity's FrameLayout not ready yet, retry
+                                handler.postDelayed(this, POLL_INTERVAL_MS);
+                                return;
+                            }
+
+                            // Unity is ready (or max wait reached) — proceed with initialization
                             try {
                                 addUnityViewToBackground();
                             } catch (InvocationTargetException | IllegalAccessException | NoSuchMethodException e) {}
@@ -80,7 +99,7 @@ public class ReactNativeUnity {
                                 callback.onReady();
                             } catch (InvocationTargetException | IllegalAccessException | NoSuchMethodException e) {}
                         }
-                    }, 300);
+                    }, POLL_INTERVAL_MS);
                 }
             });
         }
