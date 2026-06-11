@@ -66,7 +66,9 @@ export default class UnityView extends React.Component<RNUnityViewProps> {
 
   componentWillUnmount() {
     if (this.ref.current) {
-      Commands.unloadUnity(this.ref.current);
+      // Pause instead of unload — unload destroys the Unity runtime,
+      // making it impossible to resume when navigating back.
+      Commands.pauseUnity(this.ref.current, true);
     }
   }
 

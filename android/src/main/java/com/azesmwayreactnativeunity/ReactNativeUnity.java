@@ -3,6 +3,8 @@ package com.azesmwayreactnativeunity;
 import android.app.Activity;
 import android.graphics.PixelFormat;
 import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.ViewGroup;
 import android.view.WindowManager;
 
@@ -44,43 +46,41 @@ public class ReactNativeUnity {
                 public void run() {
                     activity.getWindow().setFormat(PixelFormat.RGBA_8888);
                     int flag = activity.getWindow().getAttributes().flags;
-                    boolean fullScreen = false;
-                    if ((flag & WindowManager.LayoutParams.FLAG_FULLSCREEN) == WindowManager.LayoutParams.FLAG_FULLSCREEN) {
-                        fullScreen = true;
-                    }
+                    final boolean fullScreen = (flag & WindowManager.LayoutParams.FLAG_FULLSCREEN) == WindowManager.LayoutParams.FLAG_FULLSCREEN;
 
                     try {
                         unityPlayer = new UPlayer(activity, callback);
                     } catch (ClassNotFoundException | InstantiationException | IllegalAccessException | InvocationTargetException e) {}
 
-                    try {
-                        // wait a moment. fix unity cannot start when startup.
-                        Thread.sleep(1000);
-                    } catch (Exception e) {}
+                    // Use non-blocking delay instead of Thread.sleep to keep UI responsive
+                    new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            // start unity
+                            try {
+                                addUnityViewToBackground();
+                            } catch (InvocationTargetException | IllegalAccessException | NoSuchMethodException e) {}
 
-                    // start unity
-                    try {
-                        addUnityViewToBackground();
-                    } catch (InvocationTargetException | IllegalAccessException | NoSuchMethodException e) {}
+                            unityPlayer.windowFocusChanged(true);
 
-                    unityPlayer.windowFocusChanged(true);
+                            try {
+                                unityPlayer.requestFocusPlayer();
+                            } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {}
 
-                    try {
-                        unityPlayer.requestFocusPlayer();
-                    } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {}
+                            unityPlayer.resume();
 
-                    unityPlayer.resume();
+                            if (!fullScreen) {
+                                activity.getWindow().addFlags(WindowManager.LayoutParams.FLAG_FORCE_NOT_FULLSCREEN);
+                                activity.getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+                            }
 
-                    if (!fullScreen) {
-                        activity.getWindow().addFlags(WindowManager.LayoutParams.FLAG_FORCE_NOT_FULLSCREEN);
-                        activity.getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
-                    }
+                            _isUnityReady = true;
 
-                    _isUnityReady = true;
-
-                    try {
-                        callback.onReady();
-                    } catch (InvocationTargetException | IllegalAccessException | NoSuchMethodException e) {}
+                            try {
+                                callback.onReady();
+                            } catch (InvocationTargetException | IllegalAccessException | NoSuchMethodException e) {}
+                        }
+                    }, 300);
                 }
             });
         }
