@@ -1,6 +1,3 @@
-/// <reference types="react" />
-/// <reference types="react-native/types/modules/codegen" />
-/// <reference types="react-native/codegen" />
 import type { HostComponent, ViewProps } from 'react-native';
 import type { DirectEventHandler } from 'react-native/Libraries/Types/CodegenTypes';
 export type UnityViewContentUpdateEvent = Readonly<{

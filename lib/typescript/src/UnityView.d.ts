@@ -1,5 +1,3 @@
-/// <reference types="react-native/types/modules/codegen" />
-/// <reference types="react-native/codegen" />
 import React from 'react';
 import type { DirectEventHandler } from 'react-native/Libraries/Types/CodegenTypes';
 import type { ViewProps } from 'react-native';
@@ -22,7 +20,7 @@ export default class UnityView extends React.Component<RNUnityViewProps> {
     windowFocusChanged(hasFocus?: boolean): void;
     private getProps;
     componentWillUnmount(): void;
-    render(): JSX.Element;
+    render(): React.JSX.Element;
 }
 export {};
 //# sourceMappingURL=UnityView.d.ts.map
